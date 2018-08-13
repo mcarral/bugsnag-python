@@ -80,6 +80,11 @@ class Configuration(_BaseConfiguration):
         else:
             self.hostname = None
 
+    def import_class(self, class_path):
+        class_path = class_path.rsplit('.', 1)
+        mod = __import__(class_path[0], fromlist=[class_path[1]])
+        return getattr(mod, class_path[1])
+
     def should_notify(self):  # type: () -> bool
         return self.notify_release_stages is None or \
             (isinstance(self.notify_release_stages, (tuple, list)) and
@@ -87,7 +92,7 @@ class Configuration(_BaseConfiguration):
 
     def should_ignore(self, exception):  # type: (Exception) -> bool
         return self.ignore_classes is not None and \
-            fully_qualified_class_name(exception) in self.ignore_classes
+               [e for e in self.ignore_classes if isinstance(exception, self.import_class(e))]
 
     def get_endpoint(self):  # type: () -> str
         warnings.warn('get_endpoint and use_ssl are deprecated in favor '
