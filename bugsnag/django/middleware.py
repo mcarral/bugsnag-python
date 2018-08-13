@@ -17,12 +17,12 @@ class BugsnagMiddleware(object):
 
             bugsnag.configure_request(
                 context=request.path,
-                user_id=request.user.username if request.user.is_authenticated() else request.META['REMOTE_ADDR'],
-                session_data=dict(request.session),
+                user_id=request.user.username if request.user and request.user.is_authenticated() else request.META['REMOTE_ADDR'],
+                #session_data=dict(request.session),
                 request_data={
                     'path': request.path,
                     'encoding': request.encoding,
-                    'params': dict(request.REQUEST),
+                    'params': [lambda: dict(request.REQUEST), lambda: request.json][request.is_json()](),
                     'url': request.build_absolute_uri(),
                 },
                 environment_data=dict(request.META),

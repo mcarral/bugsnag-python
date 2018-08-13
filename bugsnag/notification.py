@@ -27,6 +27,11 @@ class Notification(object):
         self.configuration = configuration
         self.request_configuration = request_configuration
 
+    def import_class(self, class_path):
+        class_path = class_path.rsplit('.', 1)
+        mod = __import__(class_path[0], fromlist=[class_path[1]])
+        return getattr(mod, class_path[1])
+
     def deliver(self):
         """
         Deliver the exception notification to Bugsnag.
@@ -39,7 +44,7 @@ class Notification(object):
             if self.configuration.notify_release_stages != None and not self.configuration.release_stage in self.configuration.notify_release_stages:
                 return
         
-            if self.configuration.ignore_classes != None and self.__fully_qualified_class_name(self.exception) in self.configuration.ignore_classes:
+            if self.configuration.ignore_classes != None and [exception for exception in self.configuration.ignore_classes if isinstance(self.exception, self.import_class(exception))]:
                 return
 
             # Generate the URL
