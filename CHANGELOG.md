@@ -1,6 +1,64 @@
 Changelog
 =========
 
+## 3.6.0 (2019-06-25)
+
+### Enhancements
+
+* Add Python version string to report and session payloads (device.runtimeVersions)
+  [#179](https://github.com/bugsnag/bugsnag-python/pull/179)
+
+### Fixes
+
+* Ensure nested dicts are not truncated prematurely when checking for recursion
+  due to over-aggressive object id matching
+  [#181](https://github.com/bugsnag/bugsnag-python/pull/181)
+
+## 3.5.2 (2019-03-15)
+
+### Fixes
+
+* Ensure `request` tab is attached to Flask requests when JSON data is malformed
+  or otherwise cannot be read at crash time
+  [#176](https://github.com/bugsnag/bugsnag-python/pull/176)
+
+## 3.5.1 (2019-02-04)
+
+### Fixes
+
+* Ensure metadata keys are safely stringified before serialization
+  [Brock Haywood](https://github.com/brockhaywood)
+  [#163](https://github.com/bugsnag/bugsnag-python/pull/163)
+
+* Remove non-essential packages from distribution
+  [#173](https://github.com/bugsnag/bugsnag-python/pull/173)
+
+## 3.5.0 (2018-12-13)
+
+### Enhancements
+
+* Separate middleware stacks, ensuring Bugsnag middleware is always run before
+  user-added middleware, giving user callbacks full control over captured data.
+  [#166](https://github.com/bugsnag/bugsnag-python/pull/166)
+
+
+## 3.4.3 (2018-08-30)
+
+### Fixes
+
+* Speed up SanitizingJSONEncoder on large objects
+  [#148](https://github.com/bugsnag/bugsnag-python/pull/148)
+  [Jon Lund Steffensen](https://github.com/jonls)
+
+* Add django.http.response.Http404 to default ignore_classes
+  [#159](https://github.com/bugsnag/bugsnag-python/pull/159)
+  [Bruno Alla](https://github.com/browniebroke)
+
+* Remove dependency on dist_utils for modern python versions
+  [#161](https://github.com/bugsnag/bugsnag-python/pull/161)
+  [Chris Kuehl](https://github.com/chriskuehl)
+
+
 ## 3.4.2 (2018-03-07)
 
 ### Fixes
@@ -68,7 +126,7 @@ Changelog
 
 * Fixed context being overridden in flask notifier
   [#123](https://github.com/bugsnag/bugsnag-python/pull/123)
-  
+
 
 ## 3.1.1 (2017-06-08)
 

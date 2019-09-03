@@ -1,5 +1,6 @@
 import sys
 import os
+import re
 from tests.utils import IntegrationTest
 
 import django
@@ -95,3 +96,18 @@ class DjangoMiddlewareTests(IntegrationTest):
             'id': self.user.username,
             'email': 'test@test.com'
         })
+
+    def test_appends_framework_version(self):
+        with self.assertRaises(Exception):
+            self.client.get('/crash/')
+
+        self.assertEqual(len(self.server.received), 1)
+
+        payload = self.server.received[0]['json_body']
+        device_data = payload['events'][0]['device']
+
+        self.assertEquals(len(device_data['runtimeVersions']), 2)
+        self.assertTrue(re.match(r'\d+\.\d+\.\d+',
+                                 device_data['runtimeVersions']['python']))
+        self.assertTrue(re.match(r'\d+\.\d+\.\d+',
+                                 device_data['runtimeVersions']['django']))

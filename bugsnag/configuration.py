@@ -1,9 +1,16 @@
 from __future__ import absolute_import, division, print_function
 
 import os
+import platform
 import socket
+try:
+    import sysconfig
+
+    def get_python_lib(): sysconfig.get_path('purelib')
+except ImportError:
+    # Compatibility with Python 2.6
+    from distutils.sysconfig import get_python_lib
 import warnings
-from distutils.sysconfig import get_python_lib
 
 from bugsnag.sessiontracker import SessionMiddleware
 from bugsnag.middleware import DefaultMiddleware, MiddlewareStack
@@ -17,7 +24,7 @@ class _BaseConfiguration(object):
         Get a single configuration option, using values from overrides
         first if they exist.
         """
-        if name is 'use_ssl':
+        if name == 'use_ssl':
             warnings.warn('use_ssl is deprecated in favor of including the '
                           'protocol in the endpoint property and will be '
                           'removed in a future release',
@@ -33,7 +40,7 @@ class _BaseConfiguration(object):
         Set one or more configuration settings.
         """
         for name, value in options.items():
-            if name is 'use_ssl':
+            if name == 'use_ssl':
                 warnings.warn('use_ssl is deprecated in favor of including '
                               'the protocol in the endpoint property and will '
                               'be removed in a future release',
@@ -63,15 +70,21 @@ class Configuration(_BaseConfiguration):
         self.app_version = None
         self.params_filters = ["password", "password_confirmation", "cookie",
                                "authorization"]
-        self.ignore_classes = ["KeyboardInterrupt", "django.http.Http404"]
+        self.ignore_classes = [
+            "KeyboardInterrupt",
+            "django.http.Http404",
+            "django.http.response.Http404",
+        ]
         self.endpoint = "https://notify.bugsnag.com"
         self.session_endpoint = "https://sessions.bugsnag.com"
         self.auto_capture_sessions = False
         self.traceback_exclude_modules = []
 
         self.middleware = MiddlewareStack()
-        self.middleware.append(DefaultMiddleware)
-        self.middleware.append(SessionMiddleware)
+
+        self.internal_middleware = MiddlewareStack()
+        self.internal_middleware.append(DefaultMiddleware)
+        self.internal_middleware.append(SessionMiddleware)
 
         self.proxy_host = None
 
@@ -79,6 +92,8 @@ class Configuration(_BaseConfiguration):
             self.hostname = socket.gethostname()
         else:
             self.hostname = None
+
+        self.runtime_versions = {"python": platform.python_version()}
 
     def import_class(self, class_path):
         class_path = class_path.rsplit('.', 1)

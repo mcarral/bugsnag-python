@@ -2,6 +2,8 @@ import unittest
 import json
 import timeit
 import sys
+import datetime
+import re
 
 from six import u
 from bugsnag.utils import SanitizingJSONEncoder, FilterDict, ThreadLocals
@@ -184,3 +186,136 @@ encoder.encode(data)
         encoder = SanitizingJSONEncoder()
         # no assert as we are just expecting this not to throw
         encoder._sanitize(data, ['password'], ['password'])
+
+    def test_json_encode_invalid_keys(self):
+        """
+        Test that _sanitize can accept some invalid json where a function
+        name or some other bad data is passed as a key in the payload
+        dictionary.
+        """
+        encoder = SanitizingJSONEncoder(keyword_filters=[])
+
+        def foo():
+            return "123"
+
+        result = json.loads(encoder.encode({foo: "a"}))
+        self.assertTrue(re.match(r'<function.*foo.*',
+                                 list(result.keys())[0]) is not None)
+        self.assertEqual(list(result.values()), ["a"])
+
+        now = datetime.datetime.now()
+        result = json.loads(encoder.encode({now: "a"}))
+        self.assertEqual(list(result.keys())[0], str(now))
+        self.assertEqual(list(result.values()), ["a"])
+
+        class Object(object):
+            pass
+
+        result = json.loads(encoder.encode({Object(): "a"}))
+        self.assertTrue(re.match(r'<tests.test_utils.*Object.*',
+                                 list(result.keys())[0]) is not None)
+        self.assertEqual(list(result.values()), ["a"])
+
+    def test_filter_dict_with_inner_dict(self):
+        """
+        Test that nested dict uniqueness checks work and are not recycled
+        when a reference to a nested dict goes out of scope
+        """
+        data = {
+            'level1-key1': {
+                'level2-key1': FilterDict({
+                    'level3-key1': {'level4-key1': 'level4-value1'},
+                    'level3-key4': {'level4-key3': 'level4-value3'},
+                }),
+                'level2-key2': FilterDict({
+                    'level3-key2': 'level3-value1',
+                    'level3-key3': {'level4-key2': 'level4-value2'},
+                    'level3-key5': {'level4-key4': 'level4-value4'},
+                }),
+            }
+        }
+        encoder = SanitizingJSONEncoder(keyword_filters=['password'])
+        sane_data = json.loads(encoder.encode(data))
+        self.assertEqual(sane_data, {
+                            'level1-key1': {
+                                'level2-key1': {
+                                    'level3-key1': {
+                                        'level4-key1': 'level4-value1'
+                                    },
+                                    'level3-key4': {
+                                        'level4-key3': 'level4-value3'
+                                    }
+                                },
+                                'level2-key2': {
+                                    'level3-key2': 'level3-value1',
+                                    'level3-key3': {
+                                        'level4-key2': 'level4-value2'
+                                    },
+                                    'level3-key5': {
+                                        'level4-key4': 'level4-value4'
+                                    },
+                                },
+                            }
+                        })
+
+    def test_filter_strings_with_inner_dict(self):
+        """
+        Test that nested dict uniqueness checks work and are not recycled
+        when a reference to a nested dict goes out of scope
+        """
+        data = FilterDict({
+            'level1-key1': {
+                'level2-key1': {
+                    'level3-key1': {'level4-key1': 'level4-value1'},
+                    'token': 'mypassword',
+                },
+                'level2-key2': {
+                    'level3-key3': {'level4-key2': 'level4-value2'},
+                    'level3-key4': {'level4-key3': 'level4-value3'},
+                    'level3-key5': {'password': 'super-secret'},
+                    'level3-key6': {'level4-key4': 'level4-value4'},
+                    'level3-key7': {'level4-key4': 'level4-value4'},
+                    'level3-key8': {'level4-key4': 'level4-value4'},
+                    'level3-key9': {'level4-key4': 'level4-value4'},
+                    'level3-key0': {'level4-key4': 'level4-value4'},
+                },
+            }
+        })
+        encoder = SanitizingJSONEncoder(keyword_filters=['password', 'token'])
+        filtered_data = encoder.filter_string_values(data)
+        self.assertEqual(filtered_data, {
+                            'level1-key1': {
+                                'level2-key1': {
+                                    'level3-key1': {
+                                        'level4-key1': 'level4-value1'
+                                    },
+                                    'token': '[FILTERED]'
+                                },
+                                'level2-key2': {
+                                    'level3-key3': {
+                                        'level4-key2': 'level4-value2'
+                                    },
+                                    'level3-key4': {
+                                        'level4-key3': 'level4-value3'
+                                    },
+                                    'level3-key5': {
+                                        'password': '[FILTERED]'
+                                    },
+                                    'level3-key6': {
+                                        'level4-key4': 'level4-value4'
+                                    },
+                                    'level3-key7': {
+                                        'level4-key4': 'level4-value4'
+                                    },
+                                    'level3-key8': {
+                                        'level4-key4': 'level4-value4'
+                                    },
+                                    'level3-key9': {
+                                        'level4-key4': 'level4-value4'
+                                    },
+                                    'level3-key0': {
+                                        'level4-key4': 'level4-value4'
+                                    },
+                                },
+                            }
+                        })

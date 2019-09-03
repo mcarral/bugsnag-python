@@ -14,14 +14,14 @@ from setuptools import setup, find_packages
 
 setup(
     name='bugsnag',
-    version='3.4.2',
+    version='3.6.0',
     description='Automatic error monitoring for django, flask, etc.',
     long_description=__doc__,
     author='Simon Maynard',
     author_email='simon@bugsnag.com',
     url='https://bugsnag.com/',
     license='MIT',
-    packages=find_packages(),
+    packages=find_packages(include=['bugsnag', 'bugsnag.*']),
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Environment :: Web Environment',

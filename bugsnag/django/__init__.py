@@ -1,6 +1,7 @@
 from __future__ import division, print_function, absolute_import
 
 import six
+import django
 from django.conf import settings
 from django.core.signals import request_started
 
@@ -26,7 +27,7 @@ def add_django_request_to_notification(notification):
             notification.context = "%s %s" % (request.method,
                                               request.path_info)
 
-    if hasattr(request, 'user'):
+    if hasattr(request, 'user') and request.user:
         if callable(request.user.is_authenticated):
             is_authenticated = request.user.is_authenticated()
         else:
@@ -50,6 +51,7 @@ def add_django_request_to_notification(notification):
         'encoding': request.encoding,
         'GET': dict(request.GET),
         'POST': dict(request.POST),
+        'JSON': [{}, request.json][request.is_json()],
         'url': request.build_absolute_uri(),
     })
     notification.add_tab("environment", dict(request.META))
@@ -66,7 +68,10 @@ def configure():
     django_bugsnag_settings = getattr(settings, 'BUGSNAG', {})
     bugsnag.configure(**django_bugsnag_settings)
 
-    bugsnag.before_notify(add_django_request_to_notification)
+    middleware = bugsnag.configure().internal_middleware
+    middleware.before_notify(add_django_request_to_notification)
+
+    bugsnag.configure().runtime_versions['django'] = django.__version__
 
 
 def __track_session(sender, **extra):
